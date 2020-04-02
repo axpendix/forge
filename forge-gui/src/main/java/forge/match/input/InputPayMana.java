@@ -369,7 +369,6 @@ public abstract class InputPayMana extends InputSyncronizedBase {
                     if (replacementEffect.requirementsCheck(g)
                             && replacementEffect.getMode() == ReplacementType.ProduceMana
                             && replacementEffect.canReplace(repParams)
-                            && replacementEffect.hasParam("ManaReplacement")
                             && replacementEffect.zonesCheck(g.getZoneOf(crd))) {
                         return true;
                     }

@@ -25,7 +25,7 @@ import forge.game.mana.ManaPool;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.player.PlayerPredicates;
-import forge.game.replacement.ReplacementEffect;
+import forge.game.replacement.ReplacementLayer;
 import forge.game.replacement.ReplacementType;
 import forge.game.spellability.AbilityManaPart;
 import forge.game.spellability.AbilitySub;
@@ -1356,20 +1356,6 @@ public class ComputerUtilMana {
         final ListMultimap<Integer, SpellAbility> manaMap = ArrayListMultimap.create();
         final Game game = ai.getGame();
 
-        List<ReplacementEffect> replacementEffects = new ArrayList<>();
-        for (final Player p : game.getPlayers()) {
-            for (final Card crd : p.getAllCards()) {
-                for (final ReplacementEffect replacementEffect : crd.getReplacementEffects()) {
-                    if (replacementEffect.requirementsCheck(game)
-                            && replacementEffect.getMode() == ReplacementType.ProduceMana
-                            && replacementEffect.hasParam("ManaReplacement")
-                            && replacementEffect.zonesCheck(game.getZoneOf(crd))) {
-                        replacementEffects.add(replacementEffect);
-                    }
-                }
-            }
-        }
-
         // Loop over all current available mana sources
         for (final Card sourceCard : getAvailableManaSources(ai, checkPlayable)) {
             if (DEBUG_MANA_PAYMENT) {
@@ -1408,16 +1394,8 @@ public class ComputerUtilMana {
                 repParams.put(AbilityKey.Player, ai);
                 repParams.put(AbilityKey.AbilityMana, m);
 
-                for (final ReplacementEffect replacementEffect : replacementEffects) {
-                    if (replacementEffect.canReplace(repParams)) {
-                        Card crd = replacementEffect.getHostCard();
-                        String repType = crd.getSVar(replacementEffect.getParam("ManaReplacement"));
-                        if (repType.contains("Chosen")) {
-                            repType = TextUtil.fastReplace(repType, "Chosen", MagicColor.toShortString(crd.getChosenColor()));
-                        }
-                        mp.setManaReplaceType(repType);
-                    }
-                }
+                // TODO add logic for AI to predict what colors it would produce after replacement
+                game.getReplacementHandler().getReplacementList(ReplacementType.ProduceMana, repParams, ReplacementLayer.Other);
 
                 Set<String> reflectedColors = CardUtil.getReflectableManaColors(m);
                 // find possible colors
