@@ -7,6 +7,7 @@ import forge.game.GameEntity;
 import forge.game.ability.AbilityUtils;
 import forge.game.ability.SpellAbilityEffect;
 import forge.game.card.Card;
+import forge.game.card.CardCollection;
 import forge.game.card.CardUtil;
 import forge.game.event.GameEventCardStatsChanged;
 import forge.game.keyword.KeywordInterface;
@@ -254,8 +255,6 @@ public class PumpEffect extends SpellAbilityEffect {
 
     @Override
     public void resolve(final SpellAbility sa) {
-
-        final List<Card> untargetedCards = Lists.newArrayList();
         final Game game = sa.getActivatingPlayer().getGame();
         final Card host = sa.getHostCard();
         final long timestamp = game.getNextTimestamp();
@@ -281,6 +280,7 @@ public class PumpEffect extends SpellAbilityEffect {
         List<Player> tgtPlayers = getTargetPlayers(sa);
         tgts.addAll(tgtCards);
         tgts.addAll(tgtPlayers);
+        final CardCollection untargetedCards = CardUtil.getRadiance(sa);
 
         if (sa.hasParam("DefinedKW")) {
             String defined = sa.getParam("DefinedKW");
@@ -377,11 +377,6 @@ public class PumpEffect extends SpellAbilityEffect {
             for (final Card c : AbilityUtils.getDefinedCards(host, sa.getParam("ForgetImprinted"), sa)) {
                 host.removeImprintedCard(c);
             }
-        }
-
-        if (sa.hasParam("Radiance")) {
-            untargetedCards.addAll(CardUtil.getRadiance(host, tgtCards.get(0), sa.getParam("ValidTgts")
-                    .split(",")));
         }
 
         final ZoneType pumpZone = sa.hasParam("PumpZone") ? ZoneType.smartValueOf(sa.getParam("PumpZone"))

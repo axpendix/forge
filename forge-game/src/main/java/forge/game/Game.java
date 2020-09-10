@@ -148,9 +148,10 @@ public class Game {
     public void copyLastState() {
         lastStateBattlefield.clear();
         lastStateGraveyard.clear();
+        Map<Integer, Card> cachedMap = Maps.newHashMap();
         for (final Player p : getPlayers()) {
-            lastStateBattlefield.addAll(p.getZone(ZoneType.Battlefield).getLKICopy());
-            lastStateGraveyard.addAll(p.getZone(ZoneType.Graveyard).getLKICopy());
+            lastStateBattlefield.addAll(p.getZone(ZoneType.Battlefield).getLKICopy(cachedMap));
+            lastStateGraveyard.addAll(p.getZone(ZoneType.Graveyard).getLKICopy(cachedMap));
         }
     }
 
@@ -164,7 +165,8 @@ public class Game {
                 : zone.equals(ZoneType.Graveyard) ? lastStateGraveyard
                 : null;
 
-        if (lookup != null && lookup.remove(c)) {
+        if (lookup != null) {
+            lookup.remove(c);
             lookup.add(CardUtil.getLKICopy(c));
         }
     }

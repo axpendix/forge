@@ -482,13 +482,15 @@ public class WrappedAbility extends Ability {
         if (ApiType.PutCounter.equals(sa.getApi())
                 || ApiType.MoveCounter.equals(sa.getApi())
                 || ApiType.MultiplyCounter.equals(sa.getApi())
-                || ApiType.MoveCounter.equals(sa.getApi())
+
                 || ApiType.RemoveCounter.equals(sa.getApi())
                 || ApiType.AddOrRemoveCounter.equals(sa.getApi())
-                || ApiType.MoveCounter.equals(sa.getApi())
+
                 || ApiType.Draw.equals(sa.getApi())
                 || ApiType.GainLife.equals(sa.getApi())
                 || ApiType.LoseLife.equals(sa.getApi())
+
+                || ApiType.Destroy.equals(sa.getApi())
 
                 // Token has no Defined it should not be timestamp problems
                 || ApiType.Token.equals(sa.getApi())
