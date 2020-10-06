@@ -28,8 +28,6 @@ public class PermanentEffect extends SpellAbilityEffect {
         if (host.isCopiedSpell()) {
             host.setCopiedSpell(false);
             host.setToken(true);
-            // for replacement Effects, need to add the previous copied spell to the Stack Zone
-            host.getGame().getStackZone().add(host);
         }
 
         final Card c = p.getGame().getAction().moveToPlay(host, p, sa);

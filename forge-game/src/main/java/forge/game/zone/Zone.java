@@ -104,8 +104,12 @@ public class Zone implements java.io.Serializable, Iterable<Card> {
         if (!c.isImmutable()) {
             final Zone oldZone = game.getZoneOf(c);
             final ZoneType zt = oldZone == null ? ZoneType.Stack : oldZone.getZoneType();
-            cardsAddedThisTurn.add(zt, c);
-            latestStateCardsAddedThisTurn.add(zt, latestState != null ? latestState : c);
+
+            // only if the zoneType differss from this
+            if (zt != zoneType) {
+                cardsAddedThisTurn.add(zt, c);
+                latestStateCardsAddedThisTurn.add(zt, latestState != null ? latestState : c);
+            }
         }
 
         c.setTurnInZone(game.getPhaseHandler().getTurn());
@@ -115,7 +119,7 @@ public class Zone implements java.io.Serializable, Iterable<Card> {
 
         // Do not add Tokens to other zones than the battlefield.
         // But Effects/Emblems count as Tokens too, so allow Command too.
-        if (zoneType == ZoneType.Battlefield || zoneType == ZoneType.Stack || !c.isToken()) {
+        if (zoneType == ZoneType.Battlefield || !c.isToken()) {
             c.setZone(this);
 
             if (index == null) {
