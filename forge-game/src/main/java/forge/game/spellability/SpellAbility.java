@@ -43,6 +43,7 @@ import forge.game.cost.CostRemoveCounter;
 import forge.game.keyword.Keyword;
 import forge.game.mana.Mana;
 import forge.game.player.Player;
+import forge.game.player.PlayerCollection;
 import forge.game.replacement.ReplacementEffect;
 import forge.game.staticability.StaticAbility;
 import forge.game.trigger.Trigger;
@@ -52,6 +53,7 @@ import forge.game.zone.ZoneType;
 import forge.util.Aggregates;
 import forge.util.Expressions;
 import forge.util.TextUtil;
+
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -1654,6 +1656,48 @@ public abstract class SpellAbility extends CardTraitBase implements ISpellAbilit
         }
         SpellAbility p = getParent();
         return p != null && p.isTargeting(o);
+    }
+
+    public boolean setupTargets() {
+        // Skip to paying if parent ability doesn't target and has no subAbilities.
+        // (or trigger case where its already targeted)
+        SpellAbility currentAbility = this;
+        final Card source = getHostCard();
+        do {
+            final TargetRestrictions tgt = currentAbility.getTargetRestrictions();
+            if (tgt != null && tgt.doesTarget()) {
+                currentAbility.clearTargets();
+                Player targetingPlayer;
+                if (currentAbility.hasParam("TargetingPlayer")) {
+                    final PlayerCollection candidates = AbilityUtils.getDefinedPlayers(source, currentAbility.getParam("TargetingPlayer"), currentAbility);
+                    // activator chooses targeting player
+                    targetingPlayer = getActivatingPlayer().getController().chooseSingleEntityForEffect(
+                            candidates, currentAbility, "Choose the targeting player", null);
+                } else {
+                    targetingPlayer = getActivatingPlayer();
+                }
+                currentAbility.setTargetingPlayer(targetingPlayer);
+                if (!targetingPlayer.getController().chooseTargetsFor(currentAbility)) {
+                    return false;
+                }
+            }
+            final AbilitySub subAbility = currentAbility.getSubAbility();
+            if (subAbility != null) {
+                // This is necessary for "TargetsWithDefinedController$ ParentTarget"
+                subAbility.setParent(currentAbility);
+            }
+            currentAbility = subAbility;
+        } while (currentAbility != null);
+        return true;
+    }
+    public final void clearTargets() {
+        final TargetRestrictions tg = getTargetRestrictions();
+        if (tg != null) {
+            resetTargets();
+            if (hasParam("DividedAsYouChoose")) {
+                tg.calculateStillToDivide(getParam("DividedAsYouChoose"), getHostCard(), this);
+            }
+        }
     }
 
     // Takes one argument like Permanent.Blue+withFlying
