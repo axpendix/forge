@@ -135,16 +135,12 @@ public class MagicStack /* extends MyObservable */ implements Iterable<SpellAbil
 
         // if the ability is a spell, but not a copied spell and its not already
         // on the stack zone, move there
-        if (ability.isSpell()) {
-            if (source.isCopiedSpell()) {
-                game.getStackZone().add(source);
-            } else {
-                if (!source.isInZone(ZoneType.Stack)) {
-                    ability.setHostCard(game.getAction().moveToStack(source, ability));
-                }
-                if (ability.equals(source.getCastSA())) {
-                    source.setCastSA(ability.copy(source, true));
-                }
+        if (ability.isSpell() && !source.isCopiedSpell()) {
+            if (!source.isInZone(ZoneType.Stack)) {
+                ability.setHostCard(game.getAction().moveToStack(source, ability));
+            }
+            if (ability.equals(source.getCastSA())) {
+                source.setCastSA(ability.copy(source, true));
             }
         }
 
@@ -246,6 +242,11 @@ public class MagicStack /* extends MyObservable */ implements Iterable<SpellAbil
             } else if (source.isFaceDown()) {
                 source.turnFaceUp(null);
             }
+
+            // copied always add to stack zone
+            if (source.isCopiedSpell()) {
+                game.getStackZone().add(source);
+            }
         }
 
         if (sp.getApi() == ApiType.Charm && sp.hasParam("ChoiceRestriction")) {
@@ -272,18 +273,15 @@ public class MagicStack /* extends MyObservable */ implements Iterable<SpellAbil
             // TODO: make working triggered ability
             sp.setTotalManaSpent(totManaSpent);
             AbilityUtils.resolve(sp);
+            // AbilityStatic should do nothing below
+            return;
         }
         else {
             for (OptionalCost s : sp.getOptionalCosts()) {
                 source.addOptionalCostPaid(s);
             }
-            if (sp.isCopied()) {
-                si = push(sp);
-            }
-            else {
-                // The ability is added to stack HERE
-                si = push(sp);
-            }
+            // The ability is added to stack HERE
+            si = push(sp);
         }
 
         sp.setTotalManaSpent(totManaSpent);
@@ -293,7 +291,7 @@ public class MagicStack /* extends MyObservable */ implements Iterable<SpellAbil
 
         // Copied spells aren't cast per se so triggers shouldn't run for them.
         Map<AbilityKey, Object> runParams = AbilityKey.newMap();
-        if (!(sp instanceof AbilityStatic) && !sp.isCopied()) {
+        if (!sp.isCopied()) {
             // Run SpellAbilityCast triggers
             runParams.put(AbilityKey.Cost, sp.getPayCosts());
             runParams.put(AbilityKey.Player, sp.getHostCard().getController());
@@ -330,10 +328,8 @@ public class MagicStack /* extends MyObservable */ implements Iterable<SpellAbil
                 runParams.put(AbilityKey.Crew, sp.getPaidList("TappedCards"));
                 game.getTriggerHandler().runTrigger(TriggerType.Crewed, runParams, false);
             }
-        }
-
-        // Run SpellAbilityCopy triggers
-        if (sp.isCopied()) {
+        } else {
+            // Run SpellAbilityCopy triggers
             runParams.put(AbilityKey.Activator, sp.getActivatingPlayer());
             runParams.put(AbilityKey.CopySA, si.getSpellAbility(true));
             // Run SpellCopy triggers

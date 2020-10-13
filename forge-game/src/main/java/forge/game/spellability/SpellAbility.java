@@ -150,6 +150,7 @@ public abstract class SpellAbility extends CardTraitBase implements ISpellAbilit
     private boolean undoable;
 
     private boolean isCopied = false;
+    private boolean mayChooseNewTargets = false;
 
     private EnumSet<OptionalCost> optionalCosts = EnumSet.noneOf(OptionalCost.class);
     private TargetRestrictions targetRestrictions = null;
@@ -865,6 +866,9 @@ public abstract class SpellAbility extends CardTraitBase implements ISpellAbilit
 
             copyHelper(clone, host);
 
+            // always set this to false, it is only set in CopyEffect
+            clone.mayChooseNewTargets = false;
+
             clone.triggeringObjects = AbilityKey.newMap(this.triggeringObjects);
 
             clone.setPayCosts(getPayCosts().copy());
@@ -885,6 +889,11 @@ public abstract class SpellAbility extends CardTraitBase implements ISpellAbilit
             }
 
             clone.setPaidHash(Maps.newHashMap(getPaidHash()));
+
+            if (usesTargeting()) {
+                // the targets need to be cloned, otherwise they might be cleared
+                clone.targetChosen = getTargets().clone();
+            }
 
             // clear maps for copy, the values will be added later
             clone.additionalAbilities = Maps.newHashMap();
@@ -1289,6 +1298,13 @@ public abstract class SpellAbility extends CardTraitBase implements ISpellAbilit
         }
     }
 
+    public boolean isMayChooseNewTargets() {
+        return mayChooseNewTargets;
+    }
+    public void setMayChooseNewTargets(boolean value) {
+        mayChooseNewTargets = value;
+    }
+
     /**
      * Returns whether variable was present in the announce list.
      */
@@ -1360,6 +1376,7 @@ public abstract class SpellAbility extends CardTraitBase implements ISpellAbilit
     }
 
     public void setTargets(TargetChoices targets) {
+        // TODO should copy the target choices?
         targetChosen = targets;
     }
 

@@ -2431,7 +2431,7 @@ public class CardFactoryUtil {
             inst.addTrigger(parsedTrigReturn);
         } else if (keyword.equals("Conspire")) {
             final String trigScript = "Mode$ SpellCast | ValidCard$ Card.Self | CheckSVar$ Conspire | Secondary$ True | TriggerDescription$ Copy CARDNAME if its conspire cost was paid";
-            final String abString = "DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ 1";
+            final String abString = "DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ 1 | MayChooseTarget$ True";
 
             final Trigger conspireTrigger = TriggerHandler.parseTrigger(trigScript, card, intrinsic);
             conspireTrigger.setOverridingAbility(AbilityFactory.getAbility(abString, card));
@@ -3066,7 +3066,7 @@ public class CardFactoryUtil {
             inst.addTrigger(myTrigger);
         } else if (keyword.startsWith("Replicate")) {
             final String trigScript = "Mode$ SpellCast | ValidCard$ Card.Self | CheckSVar$ ReplicateAmount | Secondary$ True | TriggerDescription$ Copy CARDNAME for each time you paid its replicate cost";
-            final String abString = "DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ ReplicateAmount";
+            final String abString = "DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ ReplicateAmount | MayChooseTarget$ True";
 
             final Trigger replicateTrigger = TriggerHandler.parseTrigger(trigScript, card, intrinsic);
             final SpellAbility replicateAbility = AbilityFactory.getAbility(abString, card);
@@ -3194,7 +3194,7 @@ public class CardFactoryUtil {
             final String actualTrigger = "Mode$ SpellCast | ValidCard$ Card.Self | Secondary$ True"
                     + "| TriggerDescription$ Storm (" + inst.getReminderText() + ")";
 
-            String effect = "DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ StormCount";
+            String effect = "DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ StormCount | MayChooseTarget$ True";
 
             final Trigger parsedTrigger = TriggerHandler.parseTrigger(actualTrigger, card, intrinsic);
 

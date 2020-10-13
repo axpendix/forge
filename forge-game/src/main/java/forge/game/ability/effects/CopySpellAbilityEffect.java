@@ -14,14 +14,12 @@ import forge.game.card.CardLists;
 import forge.game.player.Player;
 import forge.game.spellability.AbilitySub;
 import forge.game.spellability.SpellAbility;
-import forge.util.Lang;
 import forge.util.Localizer;
 import forge.util.CardTranslation;
 
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.lang3.tuple.Pair;
 
 public class CopySpellAbilityEffect extends SpellAbilityEffect {
 
@@ -80,26 +78,12 @@ public class CopySpellAbilityEffect extends SpellAbilityEffect {
             return;
         }
 
-        List<Pair<SpellAbility, Boolean>> copies = Lists.newArrayList();
-        
-        if (sa.hasParam("CopyMultipleSpells")) {
-            final int spellCount = Integer.parseInt(sa.getParam("CopyMultipleSpells"));
+        List<SpellAbility> copies = Lists.newArrayList();
 
-            for (int multi = 0; multi < spellCount && !tgtSpells.isEmpty(); multi++) {
-                String prompt = Localizer.getInstance().getMessage("lblSelectMultiSpellCopyToStack", Lang.getOrdinal(multi + 1));
-                SpellAbility chosen = controller.getController().chooseSingleSpellForEffect(tgtSpells, sa, prompt,
-                        ImmutableMap.of());
-                SpellAbility copiedSpell = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosen);
-                copiedSpell.getHostCard().setController(card.getController(), card.getGame().getNextTimestamp());
-                copiedSpell.setActivatingPlayer(controller);
-                copies.add(Pair.of(copiedSpell, true));
-                tgtSpells.remove(chosen);
-            }
-        }
-        else if (sa.hasParam("CopyForEachCanTarget")) {
-            SpellAbility chosenSA = controller.getController().chooseSingleSpellForEffect(tgtSpells, sa,
-                    Localizer.getInstance().getMessage("lblSelectASpellCopy"), ImmutableMap.of());
-            chosenSA.setActivatingPlayer(controller);
+        SpellAbility chosenSA = controller.getController().chooseSingleSpellForEffect(tgtSpells, sa,
+                Localizer.getInstance().getMessage("lblSelectASpellCopy"), ImmutableMap.of());
+
+        if (sa.hasParam("CopyForEachCanTarget")) {
             // Find subability or rootability that has targets
             SpellAbility targetedSA = chosenSA;
             while (targetedSA != null) {
@@ -121,7 +105,7 @@ public class CopySpellAbilityEffect extends SpellAbilityEffect {
                 for (GameEntity o : candidates) {
                     SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
                     resetFirstTargetOnCopy(copy, o, targetedSA);
-                    copies.add(Pair.of(copy, false));
+                    copies.add(copy);
                 }
             } else {// Precursor Golem, Ink-Treader Nephilim
                 final String type = sa.getParam("CopyForEachCanTarget");
@@ -154,21 +138,22 @@ public class CopySpellAbilityEffect extends SpellAbilityEffect {
                 for (final Card c : valid) {
                     SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
                     resetFirstTargetOnCopy(copy, c, targetedSA);
-                    copies.add(Pair.of(copy, false));
+                    copies.add(copy);
                 }
                 for (final Player p : players) {
                     SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
                     resetFirstTargetOnCopy(copy, p, targetedSA);
-                    copies.add(Pair.of(copy, false));
+                    copies.add(copy);
                 }
             }
         }
         else {
-            SpellAbility chosenSA = controller.getController().chooseSingleSpellForEffect(tgtSpells, sa,
-                    Localizer.getInstance().getMessage("lblSelectASpellCopy"), ImmutableMap.of());
-            chosenSA.setActivatingPlayer(controller);
             for (int i = 0; i < amount; i++) {
                 SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
+                if (sa.hasParam("MayChooseTarget") && copy.usesTargeting()) {
+                    copy.setMayChooseNewTargets(true);
+                    copy.getTargetRestrictions().setMandatory(true);
+                }
 
                 // extra case for Epic to remove the keyword and the last part of the SpellAbility
                 if (sa.hasParam("Epic")) {
@@ -182,19 +167,11 @@ public class CopySpellAbilityEffect extends SpellAbilityEffect {
                     }
                 }
 
-                copies.add(Pair.of(copy, true));
+                copies.add(copy);
             }
         }
-        
-        for(Pair<SpellAbility, Boolean> copySA : copies) {
-            if (copySA.getValue() && copySA.getKey().usesTargeting()) {
-                // TODO: ideally this should be implemented by way of allowing the player to cancel targeting
-                // but in that case preserving whatever target was specified for the original spell (since
-                // "changing targets" is the optional part).
-                copySA.getKey().getTargetRestrictions().setMandatory(true);
-            }
-            controller.getController().playSpellAbilityForFree(copySA.getKey(), copySA.getValue());
-        }
+
+        controller.getController().orderAndPlaySimultaneousSa(copies);
     } // end resolve
 
     private void resetFirstTargetOnCopy(SpellAbility copy, GameEntity obj, SpellAbility targetedSA) {

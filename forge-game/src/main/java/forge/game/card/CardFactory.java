@@ -187,6 +187,12 @@ public class CardFactory {
         }
 
         copySA.setCopied(true);
+
+        if (targetSA.usesTargeting()) {
+            // do for SubAbilities too?
+            copySA.setTargets(targetSA.getTargets().clone());
+        }
+
         //remove all costs
         if (!copySA.isTrigger()) {
             copySA.setPayCosts(new Cost("", targetSA.isAbility()));
