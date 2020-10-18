@@ -1671,7 +1671,7 @@ public class PlayerControllerHuman extends PlayerController implements IGameCont
         List<SpellAbility> orderedSAs = activePlayerSAs;
         if (activePlayerSAs.size() > 1) {
             final String firstStr = activePlayerSAs.get(0).toString();
-            boolean needPrompt = false;
+            boolean needPrompt = !activePlayerSAs.get(0).isTrigger();
 
             // for the purpose of pre-ordering, no need for extra granularity
             Integer idxAdditionalInfo = firstStr.indexOf(" [");
@@ -1682,6 +1682,10 @@ public class PlayerControllerHuman extends PlayerController implements IGameCont
                 SpellAbility currentSa = activePlayerSAs.get(i);
                 String saStr = currentSa.toString();
 
+                // if current SA isn't a trigger and it uses Targeting, try to show prompt
+                if (!currentSa.isTrigger() && currentSa.usesTargeting()) {
+                    needPrompt = true;
+                }
                 if (!needPrompt && !saStr.equals(firstStr)) {
                     needPrompt = true; // prompt by default unless all abilities
                                        // are the same

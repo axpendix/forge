@@ -55,7 +55,7 @@ public class CopySpellAbilityEffect extends SpellAbilityEffect {
     @Override
     public void resolve(SpellAbility sa) {
         final Card card = sa.getHostCard();
-        Player controller = sa.getActivatingPlayer();
+        List<Player> controllers = Lists.newArrayList(sa.getActivatingPlayer());
 
         int amount = 1;
         if (sa.hasParam("Amount")) {
@@ -63,13 +63,9 @@ public class CopySpellAbilityEffect extends SpellAbilityEffect {
         }
 
         if (sa.hasParam("Controller")) {
-            controller = AbilityUtils.getDefinedPlayers(card, sa.getParam("Controller"), sa).get(0);
+            controllers = AbilityUtils.getDefinedPlayers(card, sa.getParam("Controller"), sa);
         }
 
-        boolean isOptional = sa.hasParam("Optional");
-        if (isOptional && !controller.getController().confirmAction(sa, null, Localizer.getInstance().getMessage("lblDoyouWantCopyTheSpell", CardTranslation.getTranslatedName(card.getName())))) {
-            return;
-        }
 
         final List<SpellAbility> tgtSpells = getTargetSpells(sa);
 
@@ -78,100 +74,116 @@ public class CopySpellAbilityEffect extends SpellAbilityEffect {
             return;
         }
 
-        List<SpellAbility> copies = Lists.newArrayList();
+        boolean isOptional = sa.hasParam("Optional");
 
-        SpellAbility chosenSA = controller.getController().chooseSingleSpellForEffect(tgtSpells, sa,
-                Localizer.getInstance().getMessage("lblSelectASpellCopy"), ImmutableMap.of());
-
-        if (sa.hasParam("CopyForEachCanTarget")) {
-            // Find subability or rootability that has targets
-            SpellAbility targetedSA = chosenSA;
-            while (targetedSA != null) {
-                if (targetedSA.usesTargeting() && targetedSA.getTargets().getNumTargeted() != 0) {
-                    break;
-                }
-                targetedSA = targetedSA.getSubAbility();
+        for (Player controller : controllers) {
+            if (isOptional && !controller.getController().confirmAction(sa, null, Localizer.getInstance().getMessage("lblDoyouWantCopyTheSpell", CardTranslation.getTranslatedName(card.getName())))) {
+                continue;
             }
-            if (targetedSA == null) {
-            	return;
-            }
-            final List<GameEntity> candidates = targetedSA.getTargetRestrictions().getAllCandidates(targetedSA, true);
-            if (sa.hasParam("CanTargetPlayer")) {
-                // Radiate
-                // Remove targeted players because getAllCandidates include all the valid players
-                for(Player p : targetedSA.getTargets().getTargetPlayers())
-                    candidates.remove(p);
 
-                for (GameEntity o : candidates) {
-                    SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
-                    resetFirstTargetOnCopy(copy, o, targetedSA);
-                    copies.add(copy);
+            List<SpellAbility> copies = Lists.newArrayList();
+
+            SpellAbility chosenSA = controller.getController().chooseSingleSpellForEffect(tgtSpells, sa,
+                    Localizer.getInstance().getMessage("lblSelectASpellCopy"), ImmutableMap.of());
+
+            if (sa.hasParam("CopyForEachCanTarget")) {
+                // Find subability or rootability that has targets
+                SpellAbility targetedSA = chosenSA;
+                while (targetedSA != null) {
+                    if (targetedSA.usesTargeting() && targetedSA.getTargets().getNumTargeted() != 0) {
+                        break;
+                    }
+                    targetedSA = targetedSA.getSubAbility();
                 }
-            } else {// Precursor Golem, Ink-Treader Nephilim
-                final String type = sa.getParam("CopyForEachCanTarget");
-                CardCollection valid = new CardCollection();
-                List<Player> players = Lists.newArrayList();
-                Player originalTargetPlayer = Iterables.getFirst(getTargetPlayers(chosenSA), null);
-                for (final GameEntity o : candidates) {
-                    if (o instanceof Card) {
-                        valid.add((Card) o);
-                    } else if (o instanceof Player) {
-                        final Player p = (Player) o;
-                        if (p.equals(originalTargetPlayer))
-                            continue;
-                        if (p.isValid(type.split(","), chosenSA.getActivatingPlayer(), chosenSA.getHostCard(), sa)) {
-                            players.add(p);
+                if (targetedSA == null) {
+                    continue;
+                }
+                final List<GameEntity> candidates = targetedSA.getTargetRestrictions().getAllCandidates(targetedSA, true);
+                if (sa.hasParam("CanTargetPlayer")) {
+                    // Radiate
+                    // Remove targeted players because getAllCandidates include all the valid players
+                    for(Player p : targetedSA.getTargets().getTargetPlayers())
+                        candidates.remove(p);
+
+                    for (GameEntity o : candidates) {
+                        SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
+                        resetFirstTargetOnCopy(copy, o, targetedSA);
+                        copies.add(copy);
+                    }
+                } else {// Precursor Golem, Ink-Treader Nephilim
+                    final String type = sa.getParam("CopyForEachCanTarget");
+                    CardCollection valid = new CardCollection();
+                    List<Player> players = Lists.newArrayList();
+                    Player originalTargetPlayer = Iterables.getFirst(getTargetPlayers(chosenSA), null);
+                    for (final GameEntity o : candidates) {
+                        if (o instanceof Card) {
+                            valid.add((Card) o);
+                        } else if (o instanceof Player) {
+                            final Player p = (Player) o;
+                            if (p.equals(originalTargetPlayer))
+                                continue;
+                            if (p.isValid(type.split(","), chosenSA.getActivatingPlayer(), chosenSA.getHostCard(), sa)) {
+                                players.add(p);
+                            }
                         }
                     }
-                }
-                valid = CardLists.getValidCards(valid, type.split(","), chosenSA.getActivatingPlayer(), chosenSA.getHostCard(), sa);
-                Card originalTarget = Iterables.getFirst(getTargetCards(chosenSA), null);
-                valid.remove(originalTarget);
+                    valid = CardLists.getValidCards(valid, type.split(","), chosenSA.getActivatingPlayer(), chosenSA.getHostCard(), sa);
+                    Card originalTarget = Iterables.getFirst(getTargetCards(chosenSA), null);
+                    valid.remove(originalTarget);
 
-                if (sa.hasParam("ChooseOnlyOne")) {
-                    Card choice = controller.getController().chooseSingleEntityForEffect(valid, sa, Localizer.getInstance().getMessage("lblChooseOne"), null);
-                    if (choice != null) {
-                        valid = new CardCollection(choice);
+                    if (sa.hasParam("ChooseOnlyOne")) {
+                        Card choice = controller.getController().chooseSingleEntityForEffect(valid, sa, Localizer.getInstance().getMessage("lblChooseOne"), null);
+                        if (choice != null) {
+                            valid = new CardCollection(choice);
+                        }
+                    }
+
+                    for (final Card c : valid) {
+                        SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
+                        resetFirstTargetOnCopy(copy, c, targetedSA);
+                        copies.add(copy);
+                    }
+                    for (final Player p : players) {
+                        SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
+                        resetFirstTargetOnCopy(copy, p, targetedSA);
+                        copies.add(copy);
                     }
                 }
+            }
+            else {
+                for (int i = 0; i < amount; i++) {
+                    SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
+                    if (sa.hasParam("MayChooseTarget")) {
+                        copy.setMayChooseNewTargets(true);
+                        if (copy.usesTargeting()) {
+                            copy.getTargetRestrictions().setMandatory(true);
+                        }
+                    }
 
-                for (final Card c : valid) {
-                    SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
-                    resetFirstTargetOnCopy(copy, c, targetedSA);
-                    copies.add(copy);
-                }
-                for (final Player p : players) {
-                    SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
-                    resetFirstTargetOnCopy(copy, p, targetedSA);
+                    // extra case for Epic to remove the keyword and the last part of the SpellAbility
+                    if (sa.hasParam("Epic")) {
+                        copy.getHostCard().removeIntrinsicKeyword("Epic");
+                        SpellAbility sub = copy;
+                        while (sub.getSubAbility() != null && !sub.hasParam("Epic")) {
+                            sub = sub.getSubAbility();
+                        }
+                        if (sub != null) {
+                            sub.getParent().setSubAbility(sub.getSubAbility());
+                        }
+                    }
+
                     copies.add(copy);
                 }
             }
-        }
-        else {
-            for (int i = 0; i < amount; i++) {
-                SpellAbility copy = CardFactory.copySpellAbilityAndPossiblyHost(sa, chosenSA);
-                if (sa.hasParam("MayChooseTarget") && copy.usesTargeting()) {
-                    copy.setMayChooseNewTargets(true);
-                    copy.getTargetRestrictions().setMandatory(true);
-                }
 
-                // extra case for Epic to remove the keyword and the last part of the SpellAbility
-                if (sa.hasParam("Epic")) {
-                    copy.getHostCard().removeIntrinsicKeyword("Epic");
-                    SpellAbility sub = copy;
-                    while (sub.getSubAbility() != null && !sub.hasParam("Epic")) {
-                        sub = sub.getSubAbility();
-                    }
-                    if (sub != null) {
-                        sub.getParent().setSubAbility(sub.getSubAbility());
-                    }
-                }
-
-                copies.add(copy);
+            if (copies.isEmpty()) {
+                continue;
             }
-        }
 
-        controller.getController().orderAndPlaySimultaneousSa(copies);
+            // TODO add replacement Effect
+
+            controller.getController().orderAndPlaySimultaneousSa(copies);
+        }
     } // end resolve
 
     private void resetFirstTargetOnCopy(SpellAbility copy, GameEntity obj, SpellAbility targetedSA) {
