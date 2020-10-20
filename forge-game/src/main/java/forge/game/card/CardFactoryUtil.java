@@ -2628,6 +2628,18 @@ public class CardFactoryUtil {
             trigger.setOverridingAbility(AbilityFactory.getAbility(sb.toString(), card));
 
             inst.addTrigger(trigger);
+        } else if (keyword.startsWith("Gravestorm")) {
+            String trigStr = "Mode$ SpellCast | ValidCard$ Card.Self | TriggerDescription$ Gravestorm (" + inst.getReminderText() + ")";
+            String copyStr = "DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ GravestormCount | MayChooseTarget$ True";
+
+            SpellAbility copySa = AbilityFactory.getAbility(copyStr, card);
+            copySa.setSVar("GravestormCount", "Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent");
+
+            final Trigger trigger = TriggerHandler.parseTrigger(trigStr, card, intrinsic);
+
+            trigger.setOverridingAbility(copySa);
+
+            inst.addTrigger(trigger);
         } else if (keyword.startsWith("Haunt")) {
             final String[] k = keyword.split(":");
             final String hauntSVarName = k[1];
