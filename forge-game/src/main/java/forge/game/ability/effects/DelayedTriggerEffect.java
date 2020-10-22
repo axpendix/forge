@@ -6,6 +6,7 @@ import forge.game.ability.AbilityUtils;
 import forge.game.ability.ApiType;
 import forge.game.ability.SpellAbilityEffect;
 import forge.game.player.Player;
+import forge.game.spellability.AbilitySub;
 import forge.game.spellability.SpellAbility;
 import forge.game.trigger.Trigger;
 import forge.game.trigger.TriggerHandler;
@@ -21,6 +22,8 @@ public class DelayedTriggerEffect extends SpellAbilityEffect {
     protected String getStackDescription(SpellAbility sa) {
         if (sa.hasParam("TriggerDescription")) {
             return sa.getParam("TriggerDescription");
+        } else if (sa.hasParam("SpellDescription")) {
+            return sa.getParam("SpellDescription");
         }
 
         return "";
@@ -67,7 +70,9 @@ public class DelayedTriggerEffect extends SpellAbilityEffect {
         }
 
         if (mapParams.containsKey("Execute") || sa.hasAdditionalAbility("Execute")) {
-            SpellAbility overridingSA = sa.getAdditionalAbility("Execute");
+            AbilitySub overridingSA = sa.getAdditionalAbility("Execute");
+            // need to reset the parent, additionalAbility does set it to this
+            overridingSA.setParent(null);
             overridingSA.setActivatingPlayer(sa.getActivatingPlayer());
             overridingSA.setDeltrigActivatingPlayer(sa.getActivatingPlayer()); // ensure that the original activator can be restored later
             // Set Transform timestamp when the delayed trigger is created
