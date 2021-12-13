@@ -14,7 +14,7 @@ import forge.sound.MusicPlaylist;
 import forge.sound.SoundSystem;
 import forge.util.BuildInfo;
 import io.sentry.Sentry;
-import io.sentry.SentryClient;
+import io.sentry.SentryOptions;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -106,11 +106,13 @@ public class Main {
 
     public static void main(String[] args) {
 
-        Sentry.init();
-        SentryClient sentryClient = Sentry.getStoredClient();
-        sentryClient.setRelease(BuildInfo.getVersionString());
-        sentryClient.setEnvironment(System.getProperty("os.name"));
-        sentryClient.addTag("Java Version", System.getProperty("java.version"));
+        SentryOptions options = new SentryOptions();
+        options.setEnableExternalConfiguration(true);
+        options.setRelease(BuildInfo.getVersionString());
+        options.setEnvironment(System.getProperty("os.name"));
+        options.setTag("Java Version", System.getProperty("java.version"));
+        
+        Sentry.init(options);
 
         // HACK - temporary solution to "Comparison method violates it's general contract!" crash
         System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");

@@ -14,7 +14,6 @@ import forge.model.FModel;
 import forge.util.Lang;
 import forge.util.Localizer;
 import io.sentry.Sentry;
-import io.sentry.context.Context;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
@@ -36,7 +35,7 @@ public class BaseGameSimulationTest extends ForgeCardMockTestCase {
 		super.initMocks();
 		PowerMockito.mockStatic(Sentry.class);
 		PowerMockito.mockStatic(GameLogFormatter.class);
-		PowerMockito.when(Sentry.getContext()).thenReturn(new Context());
+		//PowerMockito.when(Sentry.getContext()).thenReturn(new Context());
 		Lang.createInstance("en-US");
 	}
 
