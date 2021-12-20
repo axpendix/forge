@@ -40,7 +40,7 @@ public final class Main {
         options.setRelease(BuildInfo.getVersionString());
         options.setEnvironment(System.getProperty("os.name"));
         options.setTag("Java Version", System.getProperty("java.version"));
-        
+
         Sentry.init(options);
 
         // HACK - temporary solution to "Comparison method violates it's general contract!" crash
